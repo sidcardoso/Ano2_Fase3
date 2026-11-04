@@ -1,0 +1,12 @@
+[
+  {
+    "file": "relatorio-edge.pdf",
+    "pages": 2,
+    "minimum": 1
+  },
+  {
+    "file": "relatorio-mqtt.pdf",
+    "pages": 3,
+    "minimum": 2
+  }
+]

@@ -1,0 +1,11 @@
+node_modules/
+.runtime/
+.pio/
+.build/
+*.exe
+*.elf
+*.bin
+*.map
+.env
+*.log
+node-red/*_cred.json

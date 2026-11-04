@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Parte 2 - MQTT e dashboard</title>
+<style>
+@page { size: A4; margin: 18mm; }
+body { font: 11pt/1.45 Georgia, serif; color: #17212b; letter-spacing: 0; }
+h1 { font-size: 19pt; } h2 { font-size: 14pt; break-after: avoid; }
+p { orphans: 3; widows: 3; } table { width: 100%; border-collapse: collapse; }
+th, td { padding: 5px; border: 1px solid #c5cbd0; font-size: 9pt; overflow-wrap: anywhere; }
+code { font: 9pt Consolas, monospace; overflow-wrap: anywhere; }
+a { color: #155e75; } img { max-width: 100%; }
+h2:nth-of-type(3) { break-before: page; }
+</style></head><body><header><strong>CardioIA | Parte 2 - MQTT e dashboard</strong></header><h2>4. Parte 2: MQTT, broker e formato dos dados</h2>
+<p>O ESP32 conecta-se à rede de simulação <code>Wokwi-GUEST</code> e ao broker público <code>broker.hivemq.com</code> na porta 1883. A conectividade do protótipo é controlada pela chave/Serial; quando ativada, o firmware associa Wi-Fi, tenta abrir a sessão MQTT e aplica backoff exponencial entre tentativas, de um segundo até 30 segundos. A aquisição e os alertas locais continuam funcionando enquanto a reconexão ocorre.</p>
+<p>Os tópicos usam o identificador pseudônimo fixo <code>PAC-001</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Tópico</th>
+<th>Conteúdo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>fiap/cardioia/PAC-001/vitals</code></td>
+<td>Leituras de temperatura, umidade, BPM, movimento, alertas, sequência, idade, fila e indicador de dados atrasados</td>
+</tr>
+<tr>
+<td><code>fiap/cardioia/PAC-001/alerts</code></td>
+<td>Mudanças de estado de cada alerta</td>
+</tr>
+<tr>
+<td><code>fiap/cardioia/PAC-001/status</code></td>
+<td>Estado online/offline, número de boot, fila, descartes e amostras enviadas</td>
+</tr>
+</tbody></table>
+<p>A mensagem de sinais é JSON. Um exemplo reduzido é <code>{&quot;device&quot;:&quot;PAC-001&quot;,&quot;boot&quot;:7,&quot;seq&quot;:42,&quot;temp_c&quot;:36.5,&quot;hum_pct&quot;:50,&quot;bpm&quot;:76,&quot;motion_g&quot;:1.0,&quot;alerts&quot;:[],&quot;buffered&quot;:false,&quot;queue&quot;:0}</code>. Leituras recuperadas ou sincronizadas após interrupção carregam <code>buffered</code> e idade apropriados para não serem apresentadas como instantâneas. O firmware imprime as mensagens no Monitor Serial com o prefixo <code>[NUVEM]</code> para observação e publica no MQTT. A fila remove um registro após <code>publish()</code> retornar sucesso; a biblioteca PubSubClient utilizada trabalha com QoS 0, então esse retorno confirma escrita local do pacote, não uma confirmação de aplicação pelo broker.</p>
+<p>O tópico de status é retained para que o consumidor receba o último estado ao se inscrever. A sessão também configura Last Will para publicar estado offline se o dispositivo cair sem desconexão graciosa. Eventos de alerta são enviados no tópico de alertas quando mudam; a mensagem de sinais inclui a lista completa de alertas ativos, permitindo que o painel reconstrua o estado atual.</p>
+<h2>5. Dashboard Node-RED</h2>
+<p>O arquivo <code>node-red/flow.json</code> é um export importável. Ele assina <code>fiap/cardioia/PAC-001/#</code>, converte o JSON e separa os dados em quatro saídas. O gráfico de linha acompanha BPM até 240; o gauge mostra temperatura e usa divisões visuais em 35 °C e 38 °C; um texto exibe <code>NORMAL</code> ou os alertas ativos; outro texto exibe estado do dispositivo, fila, descartes e se os dados são ao vivo ou sincronizados com atraso. O indicador de alerta depende da lista de alertas calculada pelo ESP32, portanto também funciona durante sincronização de leituras offline.</p>
+<p>Para reproduzir, execute <code>npm ci</code> e <code>npm start</code> na pasta da fase 3, com Node.js 20 ou superior. As versões fixadas são Node-RED 4.1.17 e <code>node-red-dashboard</code> clássico 3.6.5; o fluxo é carregado automaticamente e o painel fica em <code>http://127.0.0.1:1880/ui</code>. Também é possível importar <code>node-red/flow.json</code> em outra instalação com o mesmo pacote de dashboard. O servidor está restrito a localhost, e o dashboard legado não deve ser exposto na internet. Inicie o circuito público, use <code>pulso 75</code>, envie <code>offline</code>, aguarde algumas amostras e retorne com <code>online</code>. As capturas reais estão em <code>evidencias/</code>, incluindo o alerta de taquicardia recebido do firmware. As capturas auxiliares com febre foram produzidas pelo gerador de teste Node.js e estão explicitamente identificadas.</p>
+<h2>6. Segurança, privacidade e limitações</h2>
+<p>O broker público e a porta 1883 sem TLS foram escolhidos para facilitar uma demonstração sem credenciais. O tópico pode ser observado por terceiros, o identificador é fixo e não existe autenticação nem ACL. Por isso, o protótipo transmite somente dados sintéticos e pseudônimos e não deve receber nome, documento, diagnóstico ou qualquer informação de saúde real. Um uso real exigiria broker privado, TLS, autenticação por dispositivo, ACL por tópico, rotação de credenciais fora do código, controle de retenção e auditoria. Também seriam necessários relógio confiável, QoS/acknowledgment adequado, deduplicação persistente, validação clínica e avaliação regulatória.</p>
+<p>As medidas de eficiência são amostragem periódica, registro compacto, fila limitada, envio em lotes de dez mensagens e backoff de reconexão. As limitações são a ausência de persistência no simulador, a entrega MQTT QoS 0, a dependência de um broker de demonstração e a ausência de testes com sensores reais. Uma falha de broker não interrompe a aquisição nem os alertas locais, mas um desligamento do ESP32 no Wokwi elimina a fila em RAM.</p>
+<h2>7. Validação e critérios de aceite</h2>
+<p>A lógica independente de hardware possui testes C++ em <code>tests/test_edge_core.cpp</code> para ordem e descarte da fila, autonomia, cálculo de BPM, debounce, limites de alerta, serialização JSON e round-trip CSV. O dashboard tem testes Node.js em <code>tests/test_dashboard_flow.mjs</code> para assinatura dos tópicos, presença dos widgets, mapeamento de BPM/temperatura, indicação de alertas, dados atrasados e estado da fila. Os comandos de execução estão em <code>README.md</code>.</p>
+<p>Em 4 de novembro de 2026, os testes C++ foram compilados em C++17 com <code>-Wall -Wextra -Werror</code>: 64 verificações, zero falhas. Os quatro testes Node.js passaram. O teste MQTT confirmou ida e volta pelo broker HiveMQ, e o Node-RED exibiu gráfico, gauge, alerta e status. O firmware ESP32 foi compilado e executado no Wokwi público: <a href="https://wokwi.com/projects/479795189911514113">https://wokwi.com/projects/479795189911514113</a>.</p>
+<p>No teste integrado final (boot 44014), <code>pulso 75</code> produziu 75 bpm. Em offline, as sequências 3, 4 e 5 foram coletadas a cada cinco segundos, formando fila de três registros. Após <code>online</code>, o Serial mostrou a publicação das três sequências, com a fila diminuindo de 2 para 1 e depois 0, e a mensagem <code>[SYNC] concluída: 3 leituras enviadas, fila local apagada</code>. O comando <code>pulso 130</code> gerou o alerta de taquicardia na sequência 8, recebido pelo painel. O export, os PDFs e os prints estão no repositório de entrega <a href="https://github.com/sidcardoso/Ano2_Fase3">https://github.com/sidcardoso/Ano2_Fase3</a>. O validador <code>npm run validate:delivery</code> confere os arquivos, referências do fluxo, assinaturas PNG e número real de páginas dos PDFs. Não houve ensaio em sensores físicos ou SPIFFS real.</p>
+<h2>8. Conclusão</h2>
+<p>O protótipo demonstra a cadeia de aquisição, processamento na borda, armazenamento temporário, transmissão MQTT, visualização e sinalização de alertas. A fila de seis horas explicita um compromisso de negócio entre memória e retenção, e o modo offline mantém a coleta e os alertas locais. O fluxo Node-RED e os testes tornam a integração reproduzível. O resultado é apropriado para demonstração acadêmica com dados simulados, mas não constitui dispositivo médico nem sistema de monitoramento clínico.</p>
+</body></html>

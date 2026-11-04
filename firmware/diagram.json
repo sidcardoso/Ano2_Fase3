@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "author": "CardioIA - FIAP",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": -134.1,
+      "left": -168.6,
+      "attrs": { "temperature": "36.5", "humidity": "50" }
+    },
+    { "type": "wokwi-mpu6050", "id": "mpu", "top": 186.22, "left": -170.48, "attrs": {} },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnPulse",
+      "top": 44.6,
+      "left": -192,
+      "attrs": { "color": "green", "label": "Pulso (tecla B)", "key": "b" }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "swWifi",
+      "top": -82,
+      "left": 203.5,
+      "attrs": { "value": "1" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lblWifi",
+      "top": -115.2,
+      "left": 172.8,
+      "attrs": { "text": "Wi-Fi: esq=OFF dir=ON" }
+    },
+    { "type": "wokwi-led", "id": "ledOnline", "top": 34.8, "left": 291.8, "attrs": { "color": "blue", "label": "Online" } },
+    { "type": "wokwi-led", "id": "ledAlert", "top": 34.8, "left": 349.4, "attrs": { "color": "red", "label": "Alerta" } },
+    { "type": "wokwi-led", "id": "ledPulse", "top": 34.8, "left": 407, "attrs": { "color": "green", "label": "Pulso" } },
+    { "type": "wokwi-resistor", "id": "rOnline", "top": 119.15, "left": 249.6, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "rAlert", "top": 119.15, "left": 307.2, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "rPulse", "top": 119.15, "left": 364.8, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-buzzer", "id": "buzzer", "top": 194.4, "left": 270.6, "attrs": { "volume": "0.1" } }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "dht:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "dht:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "dht:SDA", "esp:15", "green", [ "v0" ] ],
+
+    [ "mpu:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "mpu:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "mpu:SDA", "esp:21", "blue", [ "v0" ] ],
+    [ "mpu:SCL", "esp:22", "orange", [ "v0" ] ],
+
+    [ "btnPulse:1.r", "esp:4", "green", [ "v0" ] ],
+    [ "btnPulse:2.r", "esp:GND.2", "black", [ "v0" ] ],
+
+    [ "swWifi:2", "esp:27", "purple", [ "v0" ] ],
+    [ "swWifi:3", "esp:GND.2", "black", [ "v0" ] ],
+
+    [ "esp:26", "rOnline:1", "blue", [ "v0" ] ],
+    [ "rOnline:2", "ledOnline:A", "blue", [ "v0" ] ],
+    [ "ledOnline:C", "esp:GND.3", "black", [ "v0" ] ],
+
+    [ "esp:25", "rAlert:1", "red", [ "v0" ] ],
+    [ "rAlert:2", "ledAlert:A", "red", [ "v0" ] ],
+    [ "ledAlert:C", "esp:GND.3", "black", [ "v0" ] ],
+
+    [ "esp:33", "rPulse:1", "green", [ "v0" ] ],
+    [ "rPulse:2", "ledPulse:A", "green", [ "v0" ] ],
+    [ "ledPulse:C", "esp:GND.3", "black", [ "v0" ] ],
+
+    [ "esp:32", "buzzer:2", "orange", [ "v0" ] ],
+    [ "buzzer:1", "esp:GND.3", "black", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

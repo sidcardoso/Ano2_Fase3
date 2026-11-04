@@ -1,0 +1,25 @@
+name: Validar entrega CardioIA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - name: Compilar testes Edge
+        run: g++ -std=c++17 -Wall -Wextra -Werror tests/test_edge_core.cpp -o /tmp/cardioia-tests
+      - name: Executar testes Edge
+        run: /tmp/cardioia-tests
+      - run: npm run validate:delivery

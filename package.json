@@ -1,0 +1,23 @@
+{
+  "name": "cardioia-fase3",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monitoramento IoT CardioIA - ESP32, MQTT e Node-RED",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node-red --userDir .runtime --settings node-red/settings.cjs",
+    "test": "node --test tests/test_dashboard_flow.mjs",
+    "test:mqtt": "node tests/test_mqtt_integration.mjs",
+    "build:report": "node scripts/build_report.mjs",
+    "validate:delivery": "node scripts/validate_delivery.mjs"
+  },
+  "dependencies": {
+    "mqtt": "5.10.3",
+    "node-red": "4.1.17",
+    "node-red-dashboard": "3.6.5"
+  },
+  "devDependencies": {
+    "marked": "15.0.12",
+    "pdf-lib": "1.17.1"
+  }
+}
